@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(yarn add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
