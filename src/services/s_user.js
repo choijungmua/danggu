@@ -3,10 +3,16 @@ import apiClient from "@/lib/apiClient";
 export const sUserApi = {
   // Get all s_user records
   getAll: async () => {
-    const response = await apiClient.get(
-      "/s_user?select=*&order=created_at.desc"
-    );
-    return response.data;
+    try {
+      const response = await apiClient.get(
+        "/s_user?select=*&order=created_at.desc"
+      );
+      console.log("Fetched users:", response.data?.length || 0, "users");
+      return response.data || [];
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      throw error;
+    }
   },
 
   // Get s_user by id

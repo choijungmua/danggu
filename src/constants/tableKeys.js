@@ -8,6 +8,6 @@ export const TABLE_KEYS = {
   g_7: "테이블7",
   g_8: "테이블8",
   wait: "대기",
-  eat: "식사",
+  outing: "외출",
   rest: "휴식",
 };

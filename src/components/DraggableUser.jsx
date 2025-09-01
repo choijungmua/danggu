@@ -9,20 +9,34 @@ export default function DraggableUser({
   onClick,
   isOffline = false,
   isTableUser = false,
+  isModalUser = false,
   className = "",
+  showWaitTime = false,
+  waitTimeDisplay = "",
 }) {
   const [{ isDragging }, drag] = useDrag({
     type: "USER",
-    item: { user },
+    item: () => ({ user }), // 함수로 변경하여 최신 user 데이터 보장
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
+    canDrag: () => !isModalUser, // 모달 내부에서는 드래그 비활성화
     end: (item, monitor) => {
+      const dropResult = monitor.getDropResult();
+      
+      // 드롭 결과가 있으면 처리되었으므로 추가 처리 안함
+      if (dropResult && dropResult.dropped) {
+        return;
+      }
+      
       // 허공으로 던진 경우 (드롭되지 않은 경우)
       if (!monitor.didDrop()) {
         // 테이블 내부 사용자인 경우에만 대기 상태로 변경
         if (isTableUser && onClick) {
-          onClick(user);
+          // 약간의 딜레이를 추가하여 드롭 이벤트 완료 대기
+          setTimeout(() => {
+            onClick(user);
+          }, 100);
         }
       }
     },
@@ -49,22 +63,27 @@ export default function DraggableUser({
   };
 
   const getContainerClasses = () => {
+    if (isModalUser) {
+      // 모달 내부에서는 배경 없이 깔끔하게
+      return `px-3 py-2 text-zinc-900 font-medium transition-all ${className}`;
+    }
+    
     let baseClasses = isTableUser
-      ? "px-2 py-1 bg-white rounded-lg text-gray-900 font-medium hover:bg-gray-50 transition-all cursor-pointer border border-gray-200"
-      : "px-4 py-3 bg-white rounded-2xl text-gray-900 font-medium hover:bg-gray-50 transition-all cursor-pointer border border-gray-200";
+      ? "px-2 py-1 font-medium transition-all bg-zinc-100 text-zinc-700 rounded-md cursor-pointer"
+      : "px-4 py-3 bg-white rounded-xl font-medium hover:bg-zinc-50 transition-all cursor-pointer border border-zinc-200";
 
     if (isDragging) {
       baseClasses += " opacity-50 scale-95";
     }
 
     if (isOffline) {
-      baseClasses += " border-gray-300 bg-gray-50";
+      baseClasses += " border-zinc-300 bg-zinc-100 text-zinc-600";
     }
 
     if (isTableUser) {
-      baseClasses += " border-blue-200 bg-blue-50 hover:bg-blue-100";
+      baseClasses += " hover:bg-zinc-200";
     } else {
-      baseClasses += " hover:scale-[1.02]";
+      baseClasses += " hover:scale-[1.02] text-zinc-900";
     }
 
     return `${baseClasses} ${className}`;
@@ -75,44 +94,37 @@ export default function DraggableUser({
       ref={drag}
       onClick={() => onClick(user)}
       className={getContainerClasses()}
-      style={{ cursor: isDragging ? "grabbing" : "grab" }}
+      style={{ cursor: isModalUser ? "pointer" : (isDragging ? "grabbing" : "grab") }}
     >
       <div className={`flex items-center gap-${isTableUser ? "2" : "3"}`}>
-        <div
-          className={`${
-            isTableUser ? "w-6 h-6" : "w-8 h-8"
-          } rounded-full flex items-center justify-center ${
-            isTableUser ? "bg-blue-200" : "bg-gray-100"
-          }`}
-        >
-          <span
-            className={`${isTableUser ? "text-xs" : "text-sm"} font-semibold ${
-              isTableUser ? "text-blue-700" : "text-gray-600"
-            }`}
-          >
-            {user.name.charAt(0)}
-          </span>
-        </div>
+
         <div className="flex flex-col">
           <span
             className={`${isTableUser ? "text-sm" : "font-semibold"} ${
-              isOffline
-                ? "text-gray-600"
-                : isTableUser
-                ? "text-blue-900"
-                : "text-gray-900"
+              isModalUser ? "text-zinc-900" : "text-zinc-900"
             }`}
           >
             {user.name}
           </span>
-          {!isTableUser && (
+          {showWaitTime && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-500">
+                대기 시간: {waitTimeDisplay}
+              </span>
+              <span className="px-2 py-0.5 text-xs rounded-md bg-zinc-200 text-zinc-700">
+                대기중
+              </span>
+            </div>
+          )}
+          {!isTableUser && !showWaitTime && !isModalUser && (
             <span
-              className={`px-2 py-1 text-xs rounded-full border ${getStatusColor()}`}
+              className={`px-2 py-1 text-xs rounded-md ${getStatusColor()}`}
             >
               {getStatusLabel()}
             </span>
           )}
         </div>
+
       </div>
     </div>
   );

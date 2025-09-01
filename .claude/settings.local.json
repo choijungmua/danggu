@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx shadcn@latest add:*)",
-      "Bash(yarn add:*)"
+      "Bash(yarn add:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

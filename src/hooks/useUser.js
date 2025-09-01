@@ -7,6 +7,9 @@ export const useSUsers = () => {
   return useQuery({
     queryKey: [QUERY_KEYS.s_users],
     queryFn: sUserApi.getAll,
+    refetchOnMount: true, // 항상 마운트시 최신 데이터 가져오기
+    refetchOnWindowFocus: true, // 포커스시에도 refetch
+    staleTime: 0, // 항상 fresh 데이터 요청
   });
 };
 

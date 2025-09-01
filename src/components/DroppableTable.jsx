@@ -7,68 +7,81 @@ export default function DroppableTable({
   onUserDrop,
   onTableClick,
   onRemoveUser,
+  onSetAllUsersToWait,
 }) {
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: "USER",
-    drop: (item) => onUserDrop(tableNumber, item.user),
+    drop: (item, monitor) => {
+      if (!monitor.didDrop()) {
+        onUserDrop(tableNumber, item.user);
+        return { dropped: true };
+      }
+    },
+    canDrop: (item) => {
+      const user = item.user;
+      const isAlreadyInThisTable = assignedUsers.some(u => u.id === user.id);
+      return !isAlreadyInThisTable;
+    },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
+      isOver: monitor.isOver() && monitor.canDrop(),
       canDrop: monitor.canDrop(),
     }),
   });
 
-  const getTableStatus = () => {
-    if (assignedUsers.length > 0) {
-      return {
-        text: `${assignedUsers.length}명 사용 중`,
-        bgColor: "bg-white",
-        borderColor: "border-gray-200",
-        status: "사용 중",
-      };
-    }
-    return {
-      text: "사용 가능",
-      bgColor: "bg-gray-50",
-      borderColor: "border-gray-100",
-      status: "빈 테이블",
-    };
+  const handleUserClick = (user) => {
+    onRemoveUser(tableNumber, user.id);
   };
 
-  const tableStatus = getTableStatus();
-
-  const handleUserClick = (user) => {
-    // 테이블 내부 사용자 클릭 시 제거
-    onRemoveUser(tableNumber, user.id);
+  const handleSetAllToWait = (e) => {
+    e.stopPropagation();
+    if (assignedUsers.length > 0) {
+      onSetAllUsersToWait(assignedUsers);
+    }
   };
 
   return (
     <div
       ref={drop}
       onClick={() => onTableClick(tableNumber, assignedUsers)}
-      className={`${tableStatus.bgColor} rounded-2xl border ${
-        tableStatus.borderColor
-      } transition-all cursor-pointer ${
-        isOver && canDrop ? "ring-2 ring-blue-400 ring-opacity-30" : ""
-      } ${isOver ? "scale-[1.02]" : ""} hover:scale-[1.01]`}
-      style={{ height: "200px" }}
+      className={`
+        relative bg-white rounded-xl border border-gray-200 
+        transition-all duration-200 cursor-pointer
+        hover:border-gray-300 hover:shadow-sm
+        ${isOver && canDrop ? "ring-2 ring-gray-400 ring-opacity-50" : ""}
+        ${isOver ? "scale-[1.02]" : ""}
+      `}
+      style={{ minHeight: "200px" }}
     >
-      <div className="h-full flex flex-col justify-center items-center p-4 relative">
-        <div className="text-lg font-semibold text-gray-900 mb-2">
-          테이블 {tableNumber}
+      <div className="h-full flex flex-col p-4">
+        {/* 테이블 헤더 */}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-medium text-gray-900">
+            테이블 {tableNumber}
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 font-medium">
+              {assignedUsers.length}명
+            </span>
+            {assignedUsers.length > 0 && (
+              <button
+                onClick={handleSetAllToWait}
+                className="text-xs bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-2 py-1 rounded-md transition-colors"
+                title="게임 종료 - 모든 사용자를 대기상태로 전환"
+              >
+                게임 종료
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* 사용자 목록 */}
         {assignedUsers.length > 0 ? (
-          <div className="text-center w-full">
-            <div className="text-sm font-medium text-gray-700 mb-2">
-              {assignedUsers.length}명
-            </div>
-
-            {/* 사용자 목록 - 드래그 가능 */}
-            <div className="space-y-1">
-              {assignedUsers.slice(0, 3).map((user, index) => (
+          <div className="flex-1">
+            <div className="flex flex-wrap gap-1.5 p-2 bg-zinc-50 rounded-lg">
+              {assignedUsers.map((user, index) => (
                 <div
                   key={user.id}
-                  className="flex justify-center"
+                  className="flex items-center"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <DraggableUser
@@ -78,20 +91,20 @@ export default function DroppableTable({
                   />
                 </div>
               ))}
-              {assignedUsers.length > 3 && (
-                <div className="bg-gray-50 rounded-lg px-2 py-1 text-xs text-gray-500 font-medium">
-                  +{assignedUsers.length - 3}명 더
-                </div>
-              )}
             </div>
           </div>
         ) : (
-          <div className="text-sm text-gray-400">{tableStatus.text}</div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-sm text-gray-400 font-medium">
+              사용 가능
+            </div>
+          </div>
         )}
 
+        {/* 드롭 오버레이 */}
         {isOver && canDrop && (
-          <div className="absolute inset-0 bg-blue-50 bg-opacity-80 rounded-2xl flex items-center justify-center">
-            <div className="text-blue-600 font-semibold text-sm">
+          <div className="absolute inset-0 bg-gray-50 bg-opacity-90 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+            <div className="text-gray-600 font-medium text-sm">
               여기에 배치
             </div>
           </div>

@@ -32,29 +32,17 @@ export default function Navigation() {
           {/* Left side */}
           <div className="flex items-center space-x-8">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">D</span>
-              </div>
-              <h1 className="text-xl font-semibold text-gray-900">Danggu</h1>
+              <img 
+                src="/image/cnb-billiards-club.svg" 
+                alt="CNB Billiards Club" 
+                className="h-8 w-auto"
+              />
             </div>
           </div>
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-            {/* User info */}
-            <div className="hidden sm:flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-medium">
-                  {user?.email?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-900">
-                  {user?.email?.split("@")[0]}
-                </span>
-                <span className="text-xs text-gray-500">관리자</span>
-              </div>
-            </div>
+
 
             {/* Logout button */}
             <Button

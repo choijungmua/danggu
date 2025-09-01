@@ -51,8 +51,8 @@ export const getWaitUsers = (users) => {
   return users.filter((user) => user.status === "wait" && user.is_online);
 };
 
-export const getMealUsers = (users) => {
-  return users.filter((user) => user.status === "meal" && user.is_online);
+export const getOutingUsers = (users) => {
+  return users.filter((user) => user.status === "outing" && user.is_online);
 };
 
 /**
@@ -84,7 +84,7 @@ export const getUserTableStatusLabel = (status) => {
   if (!status) return "대기";
 
   if (status === "wait") return "대기";
-  if (status === "meal") return "식사";
+  if (status === "outing") return "외출";
   if (status.startsWith("g_")) {
     const tableNumber = status.substring(2);
     return `테이블 ${tableNumber}`;
@@ -103,7 +103,7 @@ export const getUserTableStatusBadgeClass = (status) => {
 
   if (status === "wait")
     return "bg-yellow-100 text-yellow-800 border-yellow-200";
-  if (status === "meal")
+  if (status === "outing")
     return "bg-orange-100 text-orange-800 border-orange-200";
   if (status.startsWith("g_")) {
     return "bg-green-100 text-green-800 border-green-200";
