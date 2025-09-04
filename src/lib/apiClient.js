@@ -12,13 +12,22 @@ const apiClient = axios.create({
   },
 });
 
-// Add auth token to requests
+// Add auth token to requests (fallback to anonymous key if no session)
 apiClient.interceptors.request.use(async (config) => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers["Authorization"] = `Bearer ${session.access_token}`;
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      config.headers["Authorization"] = `Bearer ${session.access_token}`;
+    } else {
+      // Use anonymous key for unauthenticated requests
+      config.headers["Authorization"] = `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`;
+    }
+  } catch (error) {
+    // Fallback to anonymous key if auth fails
+    config.headers["Authorization"] = `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`;
+    console.log("Using anonymous access for API requests");
   }
   return config;
 });

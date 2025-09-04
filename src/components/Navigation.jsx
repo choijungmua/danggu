@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -13,10 +14,6 @@ export default function Navigation() {
     return null;
   }
 
-  // Don't show nav if user is not logged in
-  if (!user) {
-    return null;
-  }
 
   const isActive = (path) => {
     if (path === "/") {
@@ -42,17 +39,30 @@ export default function Navigation() {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-
-
-            {/* Logout button */}
-            <Button
-              onClick={signOut}
-              variant="outline"
-              size="sm"
-              className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
-            >
-              로그아웃
-            </Button>
+            {/* Login button - only show if user is NOT logged in */}
+            {!user && (
+              <Link href="/login">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                >
+                  로그인
+                </Button>
+              </Link>
+            )}
+            
+            {/* Logout button - only show if user is logged in */}
+            {user && (
+              <Button
+                onClick={signOut}
+                variant="outline"
+                size="sm"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+              >
+                로그아웃
+              </Button>
+            )}
           </div>
         </div>
       </div>

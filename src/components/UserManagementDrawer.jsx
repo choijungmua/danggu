@@ -12,6 +12,8 @@ import UserFilter from "./UserFilter";
 import EditUserModal from "./EditUserModal";
 import DeleteUserDialog from "./DeleteUserDialog";
 import DraggableUser from "./DraggableUser";
+import { DragableOutingUser } from "./DragableOutingUser";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,7 +53,9 @@ const SidebarContent = ({
   outingUsers,
   onUserDropToOuting,
   onUserClickToWait,
-  isDragOver
+  isDragOver,
+  isGlobalDragging,
+  isMobile
 }) => {
   return (
     <div className="flex flex-col h-full bg-white">
@@ -152,7 +156,7 @@ const SidebarContent = ({
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={`flex-1 ${isGlobalDragging ? 'overflow-visible' : 'overflow-y-auto'}`}>
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
@@ -166,58 +170,12 @@ const SidebarContent = ({
               </div>
             ) : (
               outingUsers.map((user) => (
-                <TooltipProvider key={user.id}>
-                  <div className="transform hover:scale-[1.02] transition-transform">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="w-full">
-                          <DraggableUser
-                            user={user}
-                            onClick={() => onUserClickToWait(user)}
-                            className="w-full cursor-pointer"
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent 
-                        side="right" 
-                        className="max-w-48 p-2 text-xs z-[9999]"
-                        sideOffset={100}
-                        avoidCollisions={true}
-                        collisionPadding={20}
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 font-medium text-gray-900">
-                            <UserCheck size={10} className="text-orange-500" />
-                            <span>{user.name || "이름 없음"}</span>
-                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                          </div>
-                          <div className="space-y-0.5 text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <Calendar size={8} />
-                              <span>생성: {dayjs(user.created_at).format("MM/DD HH:mm")}</span>
-                            </div>
-                            {user.online_at && (
-                              <div className="flex items-center gap-1">
-                                <Clock size={8} />
-                                <span>접속: {dayjs(user.online_at).format("MM/DD HH:mm")}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center gap-1">
-                              <Power size={8} />
-                              <span>횟수: {user.online_count || 0}</span>
-                            </div>
-                            <span className="inline-block px-1.5 py-0.5 rounded text-xs bg-orange-100 text-orange-700">
-                              외출중
-                            </span>
-                          </div>
-                          <div className="text-blue-600 text-xs font-medium mt-1">
-                            클릭하여 대기 상태로 변경
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
+                <DragableOutingUser
+                  key={user.id}
+                  user={user}
+                  onClick={() => onUserClickToWait(user)}
+                  isMobile={isMobile}
+                />
               ))
             )}
           </div>
@@ -239,14 +197,18 @@ const SidebarContent = ({
               filteredUsers.map((user) => (
                 <TooltipProvider key={user.id}>
                   <div 
-                    className="group border-b border-gray-100 py-4"
+                    className="group border-b border-gray-100 py-4 hover:bg-gray-50 transition-colors relative"
                     onContextMenu={(e) => {
                       e.preventDefault();
                       setEditingUser(user);
                     }}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
+                      <button
+                        type="button"
+                        className="flex-1 min-w-0 text-left"
+                        onClick={() => handleToggleOnline(user.id, user.is_online, user.online_count || 0)}
+                      >
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex items-center gap-2 mb-1 cursor-pointer">
@@ -305,35 +267,16 @@ const SidebarContent = ({
                             </div>
                           </TooltipContent>
                         </Tooltip>
-                      </div>
+                      </button>
 
                       <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            handleToggleOnline(
-                              user.id,
-                              user.is_online,
-                              user.online_count || 0
-                            )
-                          }
-                          disabled={toggleOnlineMutation.isPending}
-                          className="ml-2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                        >
-                          {user.is_online ? (
-                            <PowerOff size={12} />
-                          ) : (
-                            <Power size={12} />
-                          )}
-                        </Button>
-
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <div className="flex flex-col gap-0.5">
                                 <div className="w-1 h-1 bg-current rounded-full" />
@@ -371,7 +314,7 @@ const SidebarContent = ({
 };
 
 export default function UserManagementDrawer() {
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -385,6 +328,7 @@ export default function UserManagementDrawer() {
   const { data: users, isLoading } = useSUsers();
   const toggleOnlineMutation = useToggleUserOnline();
   const updateUserMutation = useUpdateSUser();
+  const isMobile = useIsMobile();
 
   // 전역 드래그 상태 감지
   useEffect(() => {
@@ -474,26 +418,34 @@ export default function UserManagementDrawer() {
     }
   });
 
-  // 드래그 앤 드롭 설정 - 사이드바에서 외출중으로 변경
+  // 드래그 앤 드롭 설정 - 사이드바에서 외출중으로 변경 (임시 비활성화)
+  const isOver = false;
+  /*
   const [{ isOver }, drop] = useDrop({
     accept: "USER",
     drop: (item, monitor) => {
-      // 이미 다른 곳에 드롭되지 않은 경우 외출 상태로 변경
+      // 이미 다른 곳에 드롭되지 않은 경우에만 처리
       if (!monitor.didDrop()) {
+        const user = item.user;
         // 외출중 탭이 아닌 경우 자동으로 전환
         if (activeTab !== 'outing') {
           setActiveTab('outing');
         }
-        handleUserDropToOuting(item.user);
+        handleUserDropToOuting(user);
         setIsDragHovering(false);
         return { dropped: true };
       }
       return undefined;
     },
+    canDrop: (item) => {
+      // 외출중이 아닌 유저만 사이드바로 드롭 가능
+      return item.user.status !== 'outing';
+    },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
+      isOver: monitor.isOver() && monitor.canDrop(),
     }),
   });
+  */
 
   // 외출 상태로 변경하는 함수
   const handleUserDropToOuting = async (user) => {
@@ -620,15 +572,16 @@ export default function UserManagementDrawer() {
 
   return (
     <>
-      {/* 좌측 드래그 감지 영역 - 데스크톱 - drawer 열렸을 때만 활성화 */}
-      {isDesktopSidebarOpen && (
+      {/* 좌측 드래그 감지 영역 - 데스크톱 - 항상 활성화 */}
+      {true && (
         <div
           ref={leftEdgeDropDesktop}
           className={`hidden lg:block fixed left-0 top-0 w-80 h-full z-[70] transition-all duration-200  ${
             isLeftEdgeOverDesktop ? 'bg-orange-200/80' : ''
           }`}
           style={{ 
-            pointerEvents: isGlobalDragging ? 'auto' : 'none'
+            pointerEvents: isGlobalDragging ? 'auto' : 'none',
+            zIndex: isGlobalDragging ? 60 : 70
           }}
         >
 
@@ -677,20 +630,18 @@ export default function UserManagementDrawer() {
         )}
       </Button>
 
-      {/* 좌측 드래그 감지 영역 - 모바일 - drawer 열렸을 때만 활성화 */}
-      {isMobileDrawerOpen && (
+      {/* 좌측 드래그 감지 영역 - 모바일 - 항상 활성화 */}
+      {true && (
         <div
           ref={leftEdgeDropMobile}
-          className={`lg:hidden fixed left-0 top-0 w-80 h-full z-[75] transition-all duration-200 bg-blue-100/30 border-2 border-blue-500 ${
+          className={`lg:hidden fixed left-0 top-0 w-80 h-full z-[75] transition-all duration-200 ${
             isLeftEdgeOverMobile ? 'bg-orange-200/80' : ''
           }`}
           style={{ 
-            pointerEvents: isGlobalDragging ? 'auto' : 'none'
+            pointerEvents: isGlobalDragging ? 'auto' : 'none',
+            zIndex: isGlobalDragging ? 60 : 75
           }}
         >
-          <div className="absolute top-4 left-4 text-xs font-mono bg-black text-white px-2 py-1 rounded pointer-events-none">
-            드래그 감지 영역 (Mobile) - HOVER: {isLeftEdgeOverMobile ? 'YES' : 'NO'} - DRAG: {isGlobalDragging ? 'YES' : 'NO'}
-          </div>
           {isLeftEdgeOverMobile && (
             <div className="flex items-center justify-center h-full pointer-events-none">
               <div className="text-orange-600 text-lg font-bold bg-white px-6 py-3 rounded-lg shadow-lg border-2 border-orange-500 pointer-events-none">
@@ -717,11 +668,11 @@ export default function UserManagementDrawer() {
 
       {/* 데스크톱 사이드바 (lg 이상) */}
       <div
-        ref={drop}
         className={`
-        hidden lg:block fixed left-0 top-[60px] h-[calc(100vh-60px)] w-80 bg-white border-r border-gray-100 z-[55] transform transition-all duration-300 ease-in-out shadow-sm
+        hidden lg:block fixed left-0 top-[60px] h-[calc(100vh-60px)] w-80 bg-white border-r border-gray-100 transform transition-all duration-300 ease-in-out shadow-sm
         ${isDesktopSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         ${(isOver || isDragHovering) ? "bg-orange-50 border-orange-200" : ""}
+        ${isGlobalDragging ? "z-[35]" : "z-[55]"}
       `}
       >
         <SidebarContent 
@@ -748,6 +699,8 @@ export default function UserManagementDrawer() {
           onUserDropToOuting={handleUserDropToOuting}
           onUserClickToWait={handleUserClickToWait}
           isDragOver={isOver}
+          isGlobalDragging={isGlobalDragging}
+          isMobile={isMobile}
         />
       </div>
 
@@ -761,11 +714,11 @@ export default function UserManagementDrawer() {
 
       {/* 모바일 드로어 (lg 미만) */}
       <div
-        ref={drop}
         className={`
-        fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-[65] transform transition-all duration-300 ease-in-out lg:hidden
+        fixed left-0 top-0 h-full w-80 bg-white shadow-2xl transform transition-all duration-300 ease-in-out lg:hidden
         ${isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"}
         ${(isOver || isDragHovering) ? "bg-orange-50" : ""}
+        ${isGlobalDragging ? "z-[35]" : "z-[65]"}
       `}
       >
         <SidebarContent 
@@ -792,6 +745,8 @@ export default function UserManagementDrawer() {
           onUserDropToOuting={handleUserDropToOuting}
           onUserClickToWait={handleUserClickToWait}
           isDragOver={isOver}
+          isGlobalDragging={isGlobalDragging}
+          isMobile={isMobile}
         />
       </div>
 

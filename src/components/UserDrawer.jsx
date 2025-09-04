@@ -45,7 +45,7 @@ const SidebarContent = ({
   onClose, 
   showCloseButton = false 
 }) => (
-  <div className="flex flex-col h-full bg-white">
+  <div className="flex flex-col h-full bg-white overflow-visible">
     {/* Header */}
     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
       <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ const SidebarContent = ({
     </div>
 
     {/* Content */}
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto overflow-x-visible">
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
@@ -133,15 +133,17 @@ const SidebarContent = ({
           ) : (
             filteredUsers.map((user) => (
               <TooltipProvider key={user.id}>
-                <div 
-                  className="group border-b border-gray-100 py-4"
+                <button
+                  type="button"
+                  className="w-full group border-b border-gray-100 py-4 cursor-pointer hover:bg-gray-50 transition-colors text-left"
+                  onClick={() => handleToggleOnline(user.id, user.is_online, user.online_count || 0)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setEditingUser(user);
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
+                    <div  className="flex-1 min-w-0">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center gap-2 mb-1 cursor-pointer">
@@ -203,32 +205,13 @@ const SidebarContent = ({
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          handleToggleOnline(
-                            user.id,
-                            user.is_online,
-                            user.online_count || 0
-                          )
-                        }
-                        disabled={toggleOnlineMutation.isPending}
-                        className="ml-2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                      >
-                        {user.is_online ? (
-                          <PowerOff size={12} />
-                        ) : (
-                          <Power size={12} />
-                        )}
-                      </Button>
-
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             size="sm"
                             variant="ghost"
                             className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <div className="flex flex-col gap-0.5">
                               <div className="w-1 h-1 bg-current rounded-full" />
@@ -237,7 +220,14 @@ const SidebarContent = ({
                             </div>
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent 
+                          align="end"
+                          side="bottom"
+                          sideOffset={4}
+                          avoidCollisions={true}
+                          collisionPadding={20}
+                          className="z-[9999] bg-white border shadow-lg"
+                        >
                           <DropdownMenuItem onClick={() => setEditingUser(user)}>
                             <Edit size={14} className="mr-2" />
                             수정
@@ -254,7 +244,7 @@ const SidebarContent = ({
                       </DropdownMenu>
                     </div>
                   </div>
-                </div>
+                </button>
               </TooltipProvider>
             ))
           )}
@@ -381,7 +371,7 @@ export default function UserDrawer() {
       {/* 데스크톱 사이드바 (lg 이상) */}
       <div
         className={`
-        hidden lg:block fixed left-0 top-[60px] h-[calc(100vh-60px)] w-80 bg-white border-r border-gray-100 z-40 transform transition-transform duration-300 ease-in-out shadow-sm
+        hidden lg:block fixed left-0 top-[60px] h-[calc(100vh-60px)] w-80 bg-white border-r border-gray-100 z-40 transform transition-transform duration-300 ease-in-out shadow-sm overflow-visible
         ${isDesktopSidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >
@@ -417,7 +407,7 @@ export default function UserDrawer() {
       {/* 모바일 드로어 (lg 미만) */}
       <div
         className={`
-        fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden
+        fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden overflow-visible
         ${isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >

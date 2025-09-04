@@ -2,7 +2,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import AuthInitializer from "@/components/AuthInitializer";
 import QueryProvider from "@/components/QueryProvider";
-import NavigationWrapper from "@/components/NavigationWrapper";
+import ClientNavigationWrapper from "@/components/ClientNavigationWrapper";
 
 const pretendard = localFont({
   src: "./font/PretendardVariable.woff2",
@@ -22,10 +22,11 @@ export default function RootLayout({ children }) {
       <body
         className={`${pretendard.variable} antialiased bg-gray-50`}
         style={{ fontFamily: 'var(--font-pretendard), system-ui, -apple-system, sans-serif' }}
+        suppressHydrationWarning={true}
       >
         <QueryProvider>
           <AuthInitializer />
-          <NavigationWrapper />
+          <ClientNavigationWrapper />
           {children}
         </QueryProvider>
       </body>
