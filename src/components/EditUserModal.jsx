@@ -56,7 +56,6 @@ export default function EditUserModal({ isOpen, onClose, user }) {
       });
       onClose();
     } catch (error) {
-      console.error("사용자 수정 실패:", error);
       setErrors({ submit: error.message || "사용자 수정에 실패했습니다." });
     }
   };
@@ -80,7 +79,7 @@ export default function EditUserModal({ isOpen, onClose, user }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] mx-3 sm:mx-0">
         <DialogHeader>
           <DialogTitle>사용자 수정</DialogTitle>
           <DialogDescription>
@@ -112,18 +111,20 @@ export default function EditUserModal({ isOpen, onClose, user }) {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
               disabled={updateUserMutation.isPending}
+              className="order-2 sm:order-1 w-full sm:w-auto"
             >
               취소
             </Button>
             <Button
               type="submit"
               disabled={updateUserMutation.isPending}
+              className="order-1 sm:order-2 w-full sm:w-auto"
             >
               {updateUserMutation.isPending ? "수정 중..." : "수정"}
             </Button>

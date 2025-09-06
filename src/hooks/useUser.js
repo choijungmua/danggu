@@ -1,6 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sUserApi } from "@/services/s_user";
 import { QUERY_KEYS } from "@/constants/queryKeys";
+import { getKoreanISOString } from "@/utils/timezoneUtils";
+
+// Get user counts
+export const useSUserCounts = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.s_user_counts],
+    queryFn: sUserApi.getCounts,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+};
 
 // Get all s_users
 export const useSUsers = () => {
@@ -30,6 +42,7 @@ export const useCreateSUser = () => {
     mutationFn: sUserApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.s_users] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.s_user_counts] });
     },
   });
 };
@@ -42,6 +55,7 @@ export const useUpdateSUser = () => {
     mutationFn: ({ id, data }) => sUserApi.update(id, data),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.s_users] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.s_user_counts] });
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.s_user, variables.id],
       });
@@ -57,6 +71,7 @@ export const useDeleteSUser = () => {
     mutationFn: sUserApi.delete,
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.s_users] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.s_user_counts] });
       queryClient.removeQueries({ queryKey: [QUERY_KEYS.s_user, id] });
     },
   });
@@ -70,21 +85,27 @@ export const useToggleUserOnline = () => {
     mutationFn: ({ userId, isCurrentlyOnline, currentOnlineCount = 0 }) => {
       const updateData = {
         is_online: !isCurrentlyOnline,
-        online_at: !isCurrentlyOnline ? new Date().toISOString() : null,
+        online_at: !isCurrentlyOnline ? getKoreanISOString() : null,
       };
 
-      // 오프라인으로 전환할 때만 status를 "wait"로 변경
+      // 오프라인으로 전환할 때는 status를 "wait"로 변경하고 session_game_count를 0으로 리셋
       if (isCurrentlyOnline) {
         updateData.status = "wait";
+        updateData.session_game_count = 0; // 오프라인 시 게임 카운트 리셋
       } else {
-        // 온라인으로 전환할 때 online_count 증가
+        // 온라인으로 전환할 때는 status를 "entrance"로 변경하고 online_count 증가
+        updateData.status = "entrance";
         updateData.online_count = currentOnlineCount + 1;
+        updateData.session_game_count = 0; // 온라인 시작 시에도 0으로 초기화
       }
+      
 
       return sUserApi.update(userId, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.s_users] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.s_user_counts] });
     },
   });
 };
+

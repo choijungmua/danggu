@@ -27,7 +27,6 @@ apiClient.interceptors.request.use(async (config) => {
   } catch (error) {
     // Fallback to anonymous key if auth fails
     config.headers["Authorization"] = `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`;
-    console.log("Using anonymous access for API requests");
   }
   return config;
 });

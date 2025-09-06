@@ -5,11 +5,10 @@ import {
   getUserTableStatusBadgeClass,
 } from "@/utils/userUtils";
 
-export function DragableOutingUser({user, onClick, isMobile = false}) {
+export function DragableOutingUser({user, onClick, isMobile = false, sessionGameCount = 0, showGameCount = false}) {
   const [{ isDragging }, drag] = useDrag({
     type: "USER",
     item: () => {
-      console.log('=== 외출중 유저 드래그 아이템 생성 ===', user.name, user.status);
       return { user };
     },
     collect: (monitor) => ({
@@ -18,7 +17,6 @@ export function DragableOutingUser({user, onClick, isMobile = false}) {
     canDrag: () => {
       // 모바일에서는 드래그 비활성화
       if (isMobile) return false;
-      console.log('=== 외출중 유저 canDrag 체크 ===', user.name, 'status:', user.status);
       return true;
     },
     end: (item, monitor) => {
@@ -31,7 +29,6 @@ export function DragableOutingUser({user, onClick, isMobile = false}) {
       
       // 허공으로 던진 경우 (드롭되지 않은 경우) - 대기 상태로 변경
       if (!monitor.didDrop()) {
-        console.log('=== 외출중 유저 허공 드롭 - 대기로 변경 ===', user.name);
         if (onClick) {
           setTimeout(() => {
             onClick(user);
@@ -68,12 +65,23 @@ export function DragableOutingUser({user, onClick, isMobile = false}) {
       className={getContainerClasses()}
       style={{ cursor: isMobile ? "pointer" : (isDragging ? "grabbing" : "grab") }}
     >
-      <div className="flex items-center gap-3">
+      <div className="relative w-full">
         <div className="flex flex-col">
-          <span className="font-semibold text-zinc-900">
-            {user.name}
-          </span>
-          <span className={`px-2 py-1 text-xs rounded-md ${getStatusColor()}`}>
+          <div className="relative w-full">
+            <span 
+              className={`font-semibold text-zinc-900 block overflow-hidden text-ellipsis whitespace-nowrap ${
+                showGameCount ? 'pr-12' : ''
+              }`}
+            >
+              {user.name}
+            </span>
+            {showGameCount && (
+              <span className="absolute top-0 right-0 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap z-10">
+                {sessionGameCount || 0}회
+              </span>
+            )}
+          </div>
+          <span className={`px-2 py-1 text-xs rounded-md ${getStatusColor()} self-start mt-1`}>
             {getStatusLabel()}
           </span>
         </div>

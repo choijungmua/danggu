@@ -3,7 +3,22 @@
     "allow": [
       "Bash(npx shadcn@latest add:*)",
       "Bash(yarn add:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebSearch",
+      "Bash(claude mcp:*)",
+      "Bash(set)",
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(del update_enum.js)",
+      "Bash(npm run lint)",
+      "mcp__ide__executeCode",
+      "Bash(psql:*)",
+      "Bash(set SUPABASE_ACCESS_TOKEN=sbp_cdb8d68176d26ba5ab470d0440b1f083a292ca3c)",
+      "Bash(dir:*)",
+      "Bash(yarn lint)",
+      "Bash(del:*)",
+      "Bash(cat:*)",
+      "Bash(npx supabase db dump:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Users, X, Power, PowerOff, UserPlus, Search, Edit, Trash2, Calendar, Clock, UserCheck, Utensils } from "lucide-react";
 import { useSUsers, useToggleUserOnline, useUpdateSUser } from "@/hooks/useUser";
+import { useAllUsersSessionGameCount } from "@/hooks/useUserHistory";
 import { useOptimistic, startTransition } from "react";
 import AddUserModal from "./AddUserModal";
 import UserFilter from "./UserFilter";
@@ -14,6 +15,7 @@ import DeleteUserDialog from "./DeleteUserDialog";
 import DraggableUser from "./DraggableUser";
 import { DragableOutingUser } from "./DragableOutingUser";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useAuthStore } from "@/stores/authStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,21 +53,25 @@ const SidebarContent = ({
   activeTab,
   setActiveTab,
   outingUsers,
+  entranceUsers,
   onUserDropToOuting,
   onUserClickToWait,
   isDragOver,
   isGlobalDragging,
-  isMobile
+  isMobile,
+  allSessionGameCounts = {}
 }) => {
+  const { user: authUser } = useAuthStore();
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white overflow-hidden">
+      
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-100">
+      <div className="flex-shrink-0 px-6 py-4 border-b border-gray-100">
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('users')}
             className={`
-              relative flex items-center justify-center gap-1.5 px-4 py-3 text-xs font-medium transition-all duration-150 flex-1 whitespace-nowrap
+              relative flex items-center justify-center gap-1.5 px-3 py-3 text-xs font-medium transition-all duration-150 flex-1 whitespace-nowrap
               ${
                 activeTab === 'users' 
                   ? 'text-gray-900' 
@@ -82,7 +88,7 @@ const SidebarContent = ({
           <button
             onClick={() => setActiveTab('outing')}
             className={`
-              relative flex items-center justify-center gap-1.5 px-4 py-3 text-xs font-medium transition-all duration-150 flex-1 whitespace-nowrap
+              relative flex items-center justify-center gap-1.5 px-3 py-3 text-xs font-medium transition-all duration-150 flex-1 whitespace-nowrap
               ${
                 activeTab === 'outing' 
                   ? 'text-gray-900' 
@@ -96,23 +102,27 @@ const SidebarContent = ({
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('entrance')}
+            className={`
+              relative flex items-center justify-center gap-1.5 px-3 py-3 text-xs font-medium transition-all duration-150 flex-1 whitespace-nowrap
+              ${
+                activeTab === 'entrance' 
+                  ? 'text-gray-900' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }
+            `}
+          >
+            <UserCheck size={12} />
+            <span>입장 ({users?.filter(u => u.status === 'entrance' && u.is_online).length || 0})</span>
+            {activeTab === 'entrance' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
+            )}
+          </button>
         </div>
       </div>
       
-      {/* Action Button */}
-      <div className="px-6 py-3 border-b border-gray-100">
-        {activeTab === 'users' && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setIsAddUserModalOpen(true)}
-            className="h-8 w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md flex items-center"
-          >
-            <UserPlus size={14} className="mr-2" />
-            사용자 추가
-          </Button>
-        )}
-      </div>
+
       
       {showCloseButton && (
         <Button
@@ -128,7 +138,7 @@ const SidebarContent = ({
 
       {/* Search (일반유저 탭에서만) */}
       {activeTab === 'users' && (
-        <div className="px-6 py-4 space-y-4">
+        <div className="flex-shrink-0 px-6 py-4 space-y-4">
           <UserFilter
             selectedFilter={selectedFilter}
             onFilterChange={setSelectedFilter}
@@ -155,8 +165,31 @@ const SidebarContent = ({
         </div>
       )}
 
+      {/* Action Button */}
+      {
+        authUser && (
+          <>
+          
+
+      <div className="flex-shrink-0 px-6 py-3 border-b border-gray-100">
+        {activeTab === 'users' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsAddUserModalOpen(true)}
+            className="h-8 w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md flex items-center"
+          >
+            <UserPlus size={14} className="mr-2" />
+            사용자 추가
+          </Button>
+        )}
+      </div>
+      </>
+        )
+      }
       {/* Content */}
-      <div className={`flex-1 ${isGlobalDragging ? 'overflow-visible' : 'overflow-y-auto'}`}>
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+        <div className={`h-full ${isGlobalDragging ? 'overflow-visible' : 'overflow-y-auto scrollbar-hide'}`}>
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-gray-600"></div>
@@ -175,13 +208,35 @@ const SidebarContent = ({
                   user={user}
                   onClick={() => onUserClickToWait(user)}
                   isMobile={isMobile}
+                  sessionGameCount={user.session_game_count || 0}
+                  showGameCount={true}
+                />
+              ))
+            )}
+          </div>
+        ) : activeTab === 'entrance' ? (
+          // 입장 사용자 목록
+          <div className="p-4 space-y-3">
+            {entranceUsers.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-zinc-400 text-sm">입장한 사용자가 없습니다</div>
+              </div>
+            ) : (
+              entranceUsers.map((user) => (
+                <DragableOutingUser
+                  key={user.id}
+                  user={user}
+                  onClick={() => onUserClickToWait(user)}
+                  isMobile={isMobile}
+                  sessionGameCount={user.session_game_count || 0}
+                  showGameCount={true}
                 />
               ))
             )}
           </div>
         ) : (
           // 일반 사용자 목록
-          <div className="p-4 space-y-2">
+          <div className="p-4 space-y-2 ">
             {filteredUsers.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <div className="text-sm text-gray-500 mb-1">
@@ -200,7 +255,10 @@ const SidebarContent = ({
                     className="group border-b border-gray-100 py-4 hover:bg-gray-50 transition-colors relative"
                     onContextMenu={(e) => {
                       e.preventDefault();
-                      setEditingUser(user);
+                      // 로그인한 사용자만 우클릭 가능
+                      if (authUser) {
+                        setEditingUser(user);
+                      }
                     }}
                   >
                     <div className="flex items-center justify-between">
@@ -269,6 +327,9 @@ const SidebarContent = ({
                         </Tooltip>
                       </button>
 
+{
+  authUser && (
+
                       <div className="flex items-center gap-1">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -301,6 +362,9 @@ const SidebarContent = ({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
+                      )
+}
+
                     </div>
                   </div>
                 </TooltipProvider>
@@ -308,6 +372,7 @@ const SidebarContent = ({
             )}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
@@ -326,6 +391,7 @@ export default function UserManagementDrawer() {
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
   
   const { data: users, isLoading } = useSUsers();
+  const { data: allSessionGameCounts } = useAllUsersSessionGameCount();
   const toggleOnlineMutation = useToggleUserOnline();
   const updateUserMutation = useUpdateSUser();
   const isMobile = useIsMobile();
@@ -333,12 +399,10 @@ export default function UserManagementDrawer() {
   // 전역 드래그 상태 감지
   useEffect(() => {
     const handleDragStart = () => {
-      console.log('전역 드래그 시작 감지');
       setIsGlobalDragging(true);
     };
     
     const handleDragEnd = () => {
-      console.log('전역 드래그 종료 감지');
       setIsGlobalDragging(false);
     };
 
@@ -370,12 +434,17 @@ export default function UserManagementDrawer() {
     return optimisticUsers.filter(user => user.status === 'outing' && user.is_online);
   }, [optimisticUsers]);
 
+  // 입장 중인 사용자 필터링
+  const entranceUsers = useMemo(() => {
+    if (!optimisticUsers) return [];
+    return optimisticUsers.filter(user => user.status === 'entrance' && user.is_online);
+  }, [optimisticUsers]);
+
   // 데스크톱 좌측 가장자리 드래그 감지
   const [{ isLeftEdgeOverDesktop }, leftEdgeDropDesktop] = useDrop({
     accept: "USER",
     drop: (item, monitor) => {
       if (!monitor.didDrop()) {
-        console.log('데스크톱 좌측 드래그 감지 - 드롭 이벤트 발생:', item.user.name);
         handleUserDropToOuting(item.user);
         setIsDragHovering(false);
         return { dropped: true };
@@ -387,7 +456,6 @@ export default function UserManagementDrawer() {
     }),
     hover: (item, monitor) => {
       if (monitor.isOver()) {
-        console.log('데스크톱 좌측 드래그 감지 - hover 이벤트 발생:', item.user.name);
         setActiveTab('outing');
         setIsDragHovering(true);
       }
@@ -399,7 +467,6 @@ export default function UserManagementDrawer() {
     accept: "USER",
     drop: (item, monitor) => {
       if (!monitor.didDrop()) {
-        console.log('모바일 좌측 드래그 감지 - 드롭 이벤트 발생:', item.user.name);
         handleUserDropToOuting(item.user);
         setIsDragHovering(false);
         return { dropped: true };
@@ -411,7 +478,6 @@ export default function UserManagementDrawer() {
     }),
     hover: (item, monitor) => {
       if (monitor.isOver()) {
-        console.log('모바일 좌측 드래그 감지 - hover 이벤트 발생:', item.user.name);
         setActiveTab('outing');
         setIsDragHovering(true);
       }
@@ -449,16 +515,9 @@ export default function UserManagementDrawer() {
 
   // 외출 상태로 변경하는 함수
   const handleUserDropToOuting = async (user) => {
-    console.log('=== 외출중 상태 변경 시작 ===');
-    console.log('사용자:', user.name);
-    console.log('현재 상태:', user.status);
-    console.log('변경할 상태: outing');
-    
     const updateData = {
-      ...user,
       status: "outing",
     };
-    console.log('전송할 데이터:', updateData);
     
     // 즉시 UI 업데이트 (낙관적 업데이트)
     startTransition(() => {
@@ -474,24 +533,15 @@ export default function UserManagementDrawer() {
         id: user.id,
         data: updateData,
       });
-      console.log('외출중 상태 변경 성공:', user.name, 'Result:', result);
     } catch (error) {
-      console.error("Failed to set user to outing:", error);
     }
   };
 
   // 대기 상태로 변경하는 함수
   const handleUserClickToWait = async (user) => {
-    console.log('=== 대기 상태 변경 시작 ===');
-    console.log('사용자:', user.name);
-    console.log('현재 상태:', user.status);
-    console.log('변경할 상태: wait');
-    
     const updateData = {
-      ...user,
       status: "wait",
     };
-    console.log('전송할 데이터:', updateData);
     
     // 즉시 UI 업데이트 (낙관적 업데이트)
     startTransition(() => {
@@ -507,9 +557,7 @@ export default function UserManagementDrawer() {
         id: user.id,
         data: updateData,
       });
-      console.log('대기 상태 변경 성공:', user.name, 'Result:', result);
     } catch (error) {
-      console.error("Failed to set user to wait:", error);
     }
   };
   
@@ -563,25 +611,24 @@ export default function UserManagementDrawer() {
         currentOnlineCount,
       });
     } catch (error) {
-      console.error("Toggle online error:", error);
     }
   }, [toggleOnlineMutation]);
 
   const offlineCount = optimisticUsers?.filter((user) => !user.is_online).length || 0;
   const outingCount = outingUsers.length;
+  const entranceCount = entranceUsers.length;
 
   return (
     <>
-      {/* 좌측 드래그 감지 영역 - 데스크톱 - 항상 활성화 */}
-      {true && (
+      {/* 좌측 드래그 감지 영역 - 데스크톱 - 드래그 중에만 활성화 */}
+      {isGlobalDragging && (
         <div
           ref={leftEdgeDropDesktop}
-          className={`hidden lg:block fixed left-0 top-0 w-80 h-full z-[70] transition-all duration-200  ${
+          className={`hidden lg:block fixed left-0 top-0 w-20 h-full z-[60] transition-all duration-200  ${
             isLeftEdgeOverDesktop ? 'bg-orange-200/80' : ''
           }`}
           style={{ 
-            pointerEvents: isGlobalDragging ? 'auto' : 'none',
-            zIndex: isGlobalDragging ? 60 : 70
+            pointerEvents: 'auto'
           }}
         >
 
@@ -609,9 +656,9 @@ export default function UserManagementDrawer() {
         ) : (
           <Users size={16} className="text-gray-600" />
         )}
-        {(offlineCount > 0 || outingCount > 0) && !isDesktopSidebarOpen && (
+        {(offlineCount > 0 || outingCount > 0 || entranceCount > 0) && !isDesktopSidebarOpen && (
           <span className="absolute -top-1 -right-1 bg-gray-900 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-            {offlineCount + outingCount}
+            {offlineCount + outingCount + entranceCount}
           </span>
         )}
       </Button>
@@ -623,23 +670,22 @@ export default function UserManagementDrawer() {
         title="사용자 관리"
       >
         <Users size={16} className="text-gray-600" />
-        {(offlineCount > 0 || outingCount > 0) && (
+        {(offlineCount > 0 || outingCount > 0 || entranceCount > 0) && (
           <span className="absolute -top-1 -right-1 bg-gray-900 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-            {offlineCount + outingCount}
+            {offlineCount + outingCount + entranceCount}
           </span>
         )}
       </Button>
 
-      {/* 좌측 드래그 감지 영역 - 모바일 - 항상 활성화 */}
-      {true && (
+      {/* 좌측 드래그 감지 영역 - 모바일 - 드래그 중에만 활성화 */}
+      {isGlobalDragging && (
         <div
           ref={leftEdgeDropMobile}
-          className={`lg:hidden fixed left-0 top-0 w-80 h-full z-[75] transition-all duration-200 ${
+          className={`lg:hidden fixed left-0 top-0 w-20 h-full z-[60] transition-all duration-200 ${
             isLeftEdgeOverMobile ? 'bg-orange-200/80' : ''
           }`}
           style={{ 
-            pointerEvents: isGlobalDragging ? 'auto' : 'none',
-            zIndex: isGlobalDragging ? 60 : 75
+            pointerEvents: 'auto'
           }}
         >
           {isLeftEdgeOverMobile && (
@@ -655,13 +701,15 @@ export default function UserManagementDrawer() {
       {/* 토글 버튼 - 모바일 */}
       <Button
         onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)}
-        className="md:hidden fixed left-4 top-16 z-[80] w-12 h-12 p-0 bg-white hover:bg-gray-50 border border-gray-200 transition-all duration-200 shadow-sm rounded-lg flex items-center justify-center"
+        className={`lg:hidden fixed left-4 top-[64px] w-12 h-12 p-0 bg-white hover:bg-gray-50 border border-gray-200 transition-all duration-200 shadow-lg rounded-lg flex items-center justify-center ${
+          isMobileDrawerOpen ? 'z-[95]' : 'z-[80]'
+        }`}
         title="사용자 관리"
       >
         <Users size={18} className="text-gray-600" />
-        {(offlineCount > 0 || outingCount > 0) && (
+        {(offlineCount > 0 || outingCount > 0 || entranceCount > 0) && (
           <span className="absolute -top-1 -right-1 bg-gray-900 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-            {offlineCount + outingCount}
+            {offlineCount + outingCount + entranceCount}
           </span>
         )}
       </Button>
@@ -669,7 +717,7 @@ export default function UserManagementDrawer() {
       {/* 데스크톱 사이드바 (lg 이상) */}
       <div
         className={`
-        hidden lg:block fixed left-0 top-[60px] h-[calc(100vh-60px)] w-80 bg-white border-r border-gray-100 transform transition-all duration-300 ease-in-out shadow-sm
+        hidden lg:block fixed left-0 top-0 h-screen w-80 bg-white border-r border-gray-100 transform transition-all duration-300 ease-in-out shadow-sm pt-[60px]
         ${isDesktopSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         ${(isOver || isDragHovering) ? "bg-orange-50 border-orange-200" : ""}
         ${isGlobalDragging ? "z-[35]" : "z-[55]"}
@@ -696,18 +744,20 @@ export default function UserManagementDrawer() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           outingUsers={outingUsers}
+          entranceUsers={entranceUsers}
           onUserDropToOuting={handleUserDropToOuting}
           onUserClickToWait={handleUserClickToWait}
           isDragOver={isOver}
           isGlobalDragging={isGlobalDragging}
           isMobile={isMobile}
+          allSessionGameCounts={allSessionGameCounts}
         />
       </div>
 
-      {/* 모바일 오버레이 */}
+      {/* 모바일 오버레이 - 드로어 우측 영역만 */}
       {isMobileDrawerOpen && (
         <div
-          className="fixed inset-0 bg-black/20 z-50 transition-opacity lg:hidden backdrop-blur-sm"
+          className="fixed left-80 top-0 right-0 bottom-0 bg-black/30 z-[70] transition-opacity duration-300 lg:hidden backdrop-blur-sm"
           onClick={() => setIsMobileDrawerOpen(false)}
         />
       )}
@@ -718,8 +768,9 @@ export default function UserManagementDrawer() {
         fixed left-0 top-0 h-full w-80 bg-white shadow-2xl transform transition-all duration-300 ease-in-out lg:hidden
         ${isMobileDrawerOpen ? "translate-x-0" : "-translate-x-full"}
         ${(isOver || isDragHovering) ? "bg-orange-50" : ""}
-        ${isGlobalDragging ? "z-[35]" : "z-[65]"}
+        ${isGlobalDragging ? "z-[35]" : "z-[85]"}
       `}
+        onClick={(e) => e.stopPropagation()}
       >
         <SidebarContent 
           users={optimisticUsers}
@@ -742,11 +793,13 @@ export default function UserManagementDrawer() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           outingUsers={outingUsers}
+          entranceUsers={entranceUsers}
           onUserDropToOuting={handleUserDropToOuting}
           onUserClickToWait={handleUserClickToWait}
           isDragOver={isOver}
           isGlobalDragging={isGlobalDragging}
           isMobile={isMobile}
+          allSessionGameCounts={allSessionGameCounts}
         />
       </div>
 

@@ -277,6 +277,7 @@ export default function UserDrawer() {
   const toggleOnlineMutation = useToggleUserOnline();
 
 
+
   // 필터링된 사용자 목록 (useMemo로 최적화)
   const filteredUsers = useMemo(() => {
     if (!users) return [];
@@ -313,7 +314,6 @@ export default function UserDrawer() {
         currentOnlineCount,
       });
     } catch (error) {
-      console.error("Toggle online error:", error);
     }
   }, [toggleOnlineMutation]);
 

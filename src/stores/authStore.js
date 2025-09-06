@@ -6,24 +6,18 @@ export const useAuthStore = create((set, get) => ({
   loading: true,
   authListener: null,
 
-  // Initialize auth state
+  // Initialize auth state (쿠키에서 사용자 정보 확인)
   initialize: async () => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const response = await fetch('/api/auth/me');
+      const result = await response.json();
       
-      if (error) {
-        console.error('Session error:', error);
-        set({ user: null, loading: false });
-        return;
-      }
-
-      set({ user: session?.user ?? null, loading: false });
-
+      set({ user: result.user || null, loading: false });
+      
       // Set up auth state listener (only if not already set)
       const currentState = get();
       if (!currentState.authListener) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log('Auth state changed:', event, session?.user?.email);
           
           if (event === 'SIGNED_OUT' || !session) {
             set({ user: null });
@@ -35,7 +29,6 @@ export const useAuthStore = create((set, get) => ({
         set({ authListener: subscription });
       }
     } catch (error) {
-      console.error('Auth initialization error:', error);
       set({ user: null, loading: false });
     }
   },
@@ -49,30 +42,85 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Sign in
+  // Sign in (API 라우트 사용)
   signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
-  },
-
-  // Sign up
-  signUp: async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { data, error };
-  },
-
-  // Sign out
-  signOut: async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Sign out error:', error);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        return { data: null, error: { message: result.error } };
+      }
+      
+      // 성공 시 사용자 정보 업데이트
+      set({ user: result.user });
+      
+      // 로그인 성공 후 해당 사용자의 s_user 테이블 상태를 'entrance'로 변경
+      try {
+        await fetch('/api/users/update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            userId: result.user.id,
+            status: 'entrance'
+          }),
+        });
+      } catch (statusError) {
+      }
+      
+      return { data: { user: result.user }, error: null };
+    } catch (error) {
+      return { data: null, error: { message: error.message } };
     }
-    set({ user: null });
+  },
+
+  // Sign up (API 라우트 사용)
+  signUp: async (email, password) => {
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        return { data: null, error: { message: result.error } };
+      }
+      
+      return { data: result.data, error: null };
+    } catch (error) {
+      return { data: null, error: { message: error.message } };
+    }
+  },
+
+  // Sign out (API 라우트 사용)
+  signOut: async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      // API 응답과 상관없이 클라이언트 상태는 초기화
+      set({ user: null });
+      
+      if (!response.ok) {
+      }
+    } catch (error) {
+      // 에러가 발생해도 클라이언트 상태는 초기화
+      set({ user: null });
+    }
   },
 }));

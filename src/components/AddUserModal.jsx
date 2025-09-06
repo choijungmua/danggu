@@ -40,7 +40,6 @@ export default function AddUserModal({ isOpen, onClose }) {
       onClose();
     } catch (error) {
       setError("사용자 생성에 실패했습니다. 다시 시도해주세요.");
-      console.error("Create user error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -57,10 +56,10 @@ export default function AddUserModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-lg font-semibold">
+    <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-3 sm:p-4">
+      <Card className="w-full max-w-md mx-3 sm:mx-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg font-semibold">
             새 사용자 추가
           </CardTitle>
           <Button
@@ -99,20 +98,20 @@ export default function AddUserModal({ isOpen, onClose }) {
               </div>
             )}
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="flex-1"
+                className="flex-1 order-2 sm:order-1"
               >
                 취소
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting || !formData.name.trim()}
-                className="flex-1"
+                className="flex-1 order-1 sm:order-2"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">

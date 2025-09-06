@@ -19,7 +19,6 @@ export default function DeleteUserDialog({ isOpen, onClose, user }) {
       await deleteUserMutation.mutateAsync(user.id);
       onClose();
     } catch (error) {
-      console.error("사용자 삭제 실패:", error);
     }
   };
 
